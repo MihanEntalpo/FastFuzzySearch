@@ -1,5 +1,7 @@
 <?php
 
+namespace \Mihanentalpo\FastFuzzySearch;
+
 /**
  * Класс быстрого нечёткого поиска среди списка.
  * Предназначен для поиска наиболее похожих слов среди загруженного списка.
@@ -42,7 +44,7 @@ class FastFuzzySearch
     /**
      * @var array массив полей, которые нужно сериализовывать при сохранении индекса
      * и рассериализовывать при загрузке
-    */       
+    */
     protected static $indexFields = array(
         "words", "wordParts", "minPart", "maxPart", "isInitialized"
     );

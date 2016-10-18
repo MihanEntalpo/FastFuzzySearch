@@ -16,6 +16,8 @@
         "php": "^5.3.5 || ^7.0"
     },
     "autoload": {
-        "Mihanentalpo\\FastFuzzyCompare": "src/"
+        "psr-0":{
+            "Mihanentalpo\\FastFuzzyCompare": "src/"
+        }
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace \Mihanentalpo\FastFuzzySearch;
+namespace Mihanentalpo\FastFuzzySearch;
 
 /**
  * Класс быстрого нечёткого поиска среди списка.

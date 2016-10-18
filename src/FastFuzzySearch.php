@@ -38,8 +38,14 @@ class FastFuzzySearch
      * @var boolean поиск инициализирован?
      */
     protected $isInitialized = false;
-    protected static $indexFields = array("words", "wordParts", "minPart", "maxPart",
-        "isInitialized");
+
+    /**
+     * @var array массив полей, которые нужно сериализовывать при сохранении индекса
+     * и рассериализовывать при загрузке
+    */       
+    protected static $indexFields = array(
+        "words", "wordParts", "minPart", "maxPart", "isInitialized"
+    );
 
     /**
      * Конструктор

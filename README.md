@@ -1,4 +1,4 @@
-# FastFuzzySearch aimed to search an array of words for the most similiar to the specified one
+FastFuzzySearch aimed to search an array of words for the most similiar to the specified one
 
 The used algorythm is much faster than using levenstein distance, or similiar_text functions.
 

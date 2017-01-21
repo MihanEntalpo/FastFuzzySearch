@@ -46,7 +46,7 @@ class FastFuzzySearch
      * и рассериализовывать при загрузке
     */
     protected static $indexFields = array(
-        "words", "wordParts", "minPart", "maxPart", "isInitialized"
+        "words", "wordParts", "minPart", "maxPart", "isInitialized", "wordInfo"
     );
 
     /**

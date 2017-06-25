@@ -155,7 +155,7 @@ class FastFuzzySearch
         {
             for ($i = 0; $i <= $word_l - $size; $i++)
             {
-                $parts[] = mb_substr($word, $i, $i + $size, "UTF-8");
+                $parts[] = mb_substr($word, $i, $size, "UTF-8");
             }
         }
         return $parts;

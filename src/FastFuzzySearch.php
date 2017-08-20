@@ -12,7 +12,8 @@ class FastFuzzySearch
 {
 
     /**
-     * @var array массив слов
+     * @var array словарь, значения - оригинальные слова
+     *                     ключи - слова, подготовленные функцией prepare_word для поиска
      */
     protected $words = array();
 
@@ -61,13 +62,12 @@ class FastFuzzySearch
     public function __construct($words = array(), $minPart = 2, $maxPart = 4, $maxCachedResults = 10)
     {
         $this->cache = array();
-        $this->words = $words;
         $this->wordParts = array();
         $this->minPart = $minPart;
         $this->maxPart = $maxPart;
-        if (count($this->words))
+        if (count($words))
         {
-            $this->init();
+            $this->init($words);
         }
     }
 
@@ -113,7 +113,10 @@ class FastFuzzySearch
     {
         if ($words)
         {
-            $this->words = $words;
+            $this->words = array();
+            foreach ($words as $word) {
+                $this->words[$this->prepare_word($word)] = $word;
+            }
         }
         foreach ($this->words as $word)
         {
@@ -250,7 +253,7 @@ class FastFuzzySearch
         foreach ($foundWords as $word => $percent)
         {
             $num += 1;
-            $resWords[] = array("word" => $word, "percent" => $percent);
+            $resWords[] = array("word" => $this->words[$word], "percent" => $percent);
             if ($num >= $results)
                 break;
         }

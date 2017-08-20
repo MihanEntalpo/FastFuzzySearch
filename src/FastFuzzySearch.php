@@ -233,7 +233,7 @@ class FastFuzzySearch
 
         foreach ($foundWords as $word => $num)
         {
-            $numparts = $this->wordInfo[$word]['num_parts'];
+            $numparts = $this->wordInfo[$word]['num_parts'] > count($parts) ? $this->wordInfo[$word]['num_parts'] : count($parts);
             $foundWords[$word] = $num / $numparts;
         }
 

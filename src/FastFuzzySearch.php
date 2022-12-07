@@ -1,143 +1,166 @@
 <?php
 
-namespace Mihanentalpo\FastFuzzySearch;
-
 /**
  * Класс быстрого нечёткого поиска среди списка.
  * Предназначен для поиска наиболее похожих слов среди загруженного списка.
  * Быстрота достигается за счёт построения специальной структуры данных
  * для быстрого поиска.
  */
+
+declare(strict_types=1);
+
+namespace Mihanentalpo\FastFuzzySearch;
+
 class FastFuzzySearch
 {
-
     /**
-     * @var array словарь, значения - оригинальные слова
-     *                     ключи - слова, подготовленные функцией prepare_word для поиска
+     * Массив полей, которые нужно сериализовывать при сохранении индекса и рассериализовывать при загрузке
      */
-    protected $words = array();
+    protected const INDEX_FIELDS = [
+        'words',
+        'wordParts',
+        'minPart',
+        'maxPart',
+        'isInitialized',
+        'wordInfo',
+    ];
 
     /**
-     * @var array массив элементов слов
+     * @var array<mixed> Словарь, значения - оригинальные слова;
+     *                   ключи - слова, подготовленные функцией prepare_word для поиска
      */
-    protected $wordParts = array();
+    protected array $words = [];
 
     /**
-     * @var array массив информации о словах
+     * @var array<mixed> Массив элементов слов
      */
-    protected $wordInfo = array();
+    protected array $wordParts = [];
 
     /**
-     * @var integer минимальная длина кусочка строки
+     * @var array<mixed> Массив информации о словах
      */
-    public $minPart = 2;
+    protected array $wordInfo = [];
 
     /**
-     * @var integer максимальная длина кусочка строки
+     * @var int Минимальная длина кусочка строки
      */
-    public $maxPart = 4;
+    public int $minPart = 2;
 
     /**
-     * @var boolean поиск инициализирован?
+     * @var int Максимальная длина кусочка строки
      */
-    protected $isInitialized = false;
+    public int $maxPart = 4;
 
     /**
-     * @var array массив полей, которые нужно сериализовывать при сохранении индекса
-     * и рассериализовывать при загрузке
-    */
-    protected static $indexFields = array(
-        "words", "wordParts", "minPart", "maxPart", "isInitialized", "wordInfo"
-    );
+     * @var bool Поиск инициализирован?
+     */
+    protected bool $isInitialized = false;
 
     /**
      * Конструктор
-     * @param array $words массив слов, по которым нужно будет искать (можно пустой)
-     *                     если массив слов указан, будет вызвана функция init()
-     * @param integer $minPart минимальная длина кусочка строки
-     * @param integer $maxPart максимальная длина кусочка строки
-     * @param integer $maxCachedResults максимальное количество результатов по слову,
-     *                                  если = 0, кэширование производиться не будет.
+     *
+     * @param string[]|null $words   Массив слов, по которым нужно будет искать (можно пустой)
+     *                               если массив слов указан, будет вызвана функция init()
+     * @param int|null      $minPart Минимальная длина кусочка строки
+     * @param int|null      $maxPart Максимальная длина кусочка строки
      */
-    public function __construct($words = array(), $minPart = 2, $maxPart = 4, $maxCachedResults = 10)
+    public function __construct(?array $words = null, ?int $minPart = 2, ?int $maxPart = 4)
     {
-        $this->cache = array();
-        $this->wordParts = array();
-        $this->minPart = $minPart;
-        $this->maxPart = $maxPart;
-        if (count($words))
-        {
+        $this->wordParts = [];
+        if (null === $minPart) {
+            $minPart = 2;
+        }
+        if (null === $maxPart) {
+            $maxPart = 4;
+        }
+
+        if ($minPart > 0) {
+            $this->minPart = $minPart;
+        }
+        if ($maxPart > $minPart) {
+            $this->maxPart = $maxPart;
+        }
+        if ($words) {
             $this->init($words);
         }
     }
 
     /**
-     * Сериализовать индекс для сохранения во вне,
-     * и последующей быстрой загрузки
+     * Сериализовать индекс для сохранения во вне, и последующей быстрой загрузки
+     *
      * @return string строка
      */
-    public function serializeIndex()
+    public function serializeIndex(): string
     {
-        foreach (self::$indexFields as $f)
-        {
+        $index = [];
+        foreach (self::INDEX_FIELDS as $f) {
             $index[$f] = $this->{$f};
         }
 
-        $res = json_encode($index, JSON_UNESCAPED_UNICODE);
+        $res = null;
+        try {
+            $res = json_encode($index, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        } catch (\Exception $exception) {
+            error_log($exception->getMessage(), 0);
+        }
 
-        return $res;
+        return $res ?? '';
     }
 
     /**
-     * Рассериализовать индекс полученный из вне
-     * (сохранённый ранее с помощью serializeIndex)
-     * @param string $serializedIndex сериализованный индекс
+     * Рассериализовать индекс полученный из вне (сохранённый ранее с помощью serializeIndex)
+     *
+     * @param string $serializedIndex Сериализованный индекс
      */
-    public function unserializeIndex($serializedIndex)
+    public function unserializeIndex(string $serializedIndex): void
     {
-        $index = json_decode($serializedIndex, true);
+        if ($serializedIndex) {
+            $index = [];
+            try {
+                $index = json_decode($serializedIndex, true, 512, JSON_THROW_ON_ERROR);
+            } catch (\Exception $exception) {
+                error_log($exception->getMessage(), 0);
+            }
 
-        foreach (self::$indexFields as $f)
-        {
-            $this->{$f} = $index[$f];
+            if ($index) {
+                foreach (self::INDEX_FIELDS as $f) {
+                    $this->{$f} = $index[$f];
+                }
+            }
         }
     }
 
     /**
      * Инициализировать
-     * @param array $words Массив слов, по которым нужно построить индекс
-     *                     если массив пустой, то попытка инициализировать
-     *                     по тому массиву слов, который был задан в конструкторе
+     *
+     * @param string[] $words Массив слов, по которым нужно построить индекс.
+     *                        Если массив пустой, то попытка инициализировать
+     *                        по тому массиву слов, который был задан в конструкторе
      */
-    public function init($words = array())
+    public function init(array $words): void
     {
-        if ($words)
-        {
-            $this->words = array();
+        if ($words) {
+            $this->words = [];
             foreach ($words as $word) {
                 $this->words[$this->prepare_word($word)] = $word;
             }
         }
-        foreach ($this->words as $word)
-        {
+        foreach ($this->words as $word) {
             $word = $this->prepare_word($word);
             $parts = $this->get_parts($word);
 
-            $this->wordInfo[$word] = array("word" => $word, "num_parts" => count($parts));
+            $this->wordInfo[$word] = ['word' => $word, 'num_parts' => count($parts)];
 
-            foreach ($parts as $part)
-            {
+            foreach ($parts as $part) {
                 $size = mb_strlen($part);
                 $skey = $size;
-                if (!isset($this->wordParts[$skey]))
-                {
-                    $this->wordParts[$skey] = array();
+                if (!isset($this->wordParts[$skey])) {
+                    $this->wordParts[$skey] = [];
                 }
-                if (!isset($this->wordParts[$skey][$part]))
-                {
-                    $this->wordParts[$skey][$part] = array("words" => array());
+                if (!isset($this->wordParts[$skey][$part])) {
+                    $this->wordParts[$skey][$part] = ['words' => []];
                 }
-                $this->wordParts[$skey][$part]["words"][$word] = $word;
+                $this->wordParts[$skey][$part]['words'][$word] = $word;
             }
         }
         $this->isInitialized = true;
@@ -145,189 +168,155 @@ class FastFuzzySearch
 
     /**
      * Получить массив кусочков из слова, размерами от minPart до maxPart
-     * @param string $word слово
-     * @return array массив кусочков
+     *
+     * @param string $word Слово
+     *
+     * @return string[] Массив кусочков
      */
-    protected function get_parts($word)
+    protected function get_parts(string $word): array
     {
-        $parts = array();
+        $parts = [];
         $word_l = mb_strlen($word);
         $min_l = min($this->minPart, $word_l);
         $max_l = min($this->maxPart, $word_l);
-        for ($size = $min_l; $size <= $max_l; $size ++)
-        {
-            for ($i = 0; $i <= $word_l - $size; $i++)
-            {
-                $parts[] = mb_substr($word, $i, $size, "UTF-8");
+        for ($size = $min_l; $size <= $max_l; $size ++) {
+            for ($i = 0; $i <= $word_l - $size; $i++) {
+                $parts[] = mb_substr($word, $i, $size, 'UTF-8');
             }
         }
+
         return $parts;
     }
 
     /**
-     * Получить количество кусочков, которые могут быть получены из слова
-     * @param integer $len длина слова, количество кусочков которого нужно выяснить
-     * @return integer количество кусочков
-     */
-    protected function get_num_parts($len)
-    {
-        $min_l = min($len, $this->minPart);
-        $max_l = max($len, $this->maxPart);
-
-        $n = $len - $min_l + 1;
-        $d = $max_l - $min_l;
-        $m = $n - $d;
-
-        $s1 = $m * ($d + 1);
-        $s2 = $d * ($d + 1) / 2;
-        $s = $s1 + $s2;
-
-        return (int) $s;
-    }
-
-    /**
      * Подготовить слово - удаляет из слова все символы кроме русских и английских букв
-     * @param string $word слово
-     * @return string результат обработки
+     *
+     * @param string $word Слово
+     *
+     * @return string Результат обработки
      */
-    public function prepare_word($word)
+    public function prepare_word(string $word): string
     {
-        return preg_replace(
-                "[^а-яА-Яa-zA-Z]", "", str_replace(
-                        array("ё", "Ё"), array("е", "е"), mb_strtolower($word, "UTF-8")
-                )
+        $result = preg_replace(
+            '/[^а-яА-Яa-zA-Z]/u',
+            '',
+            str_replace(['ё', 'Ё'], ['е', 'е'], mb_strtolower($word, 'UTF-8'))
         );
+
+        return $result ?? '';
     }
 
     /**
      * Поиск наиболее похожих слов
-     * @param string $word слово, которое надо искать
-     * @param integer $result Количество результатов
-     * @return array массив результатов, элементы которого - массивы,
-     *               вида array("word"=>"Слово", "percent"=0.77)
-     *               (слово и процент от 0 до 1)
+     *
+     * @param string   $word    Слово, которое надо искать
+     * @param int|null $results Количество результатов
+     *
+     * @return array{int?: array{'word': string, 'percent': float}} Массив результатов, элементы которого - массивы,
+     *                                                              вида array("word"=>"Слово", "percent"=0.77)
+     *                                                              (слово и процент от 0 до 1)
      */
-    public function find($word, $results = 1)
+    public function find(string $word, ?int $results = 1): array
     {
         $word = $this->prepare_word($word);
 
         $parts = $this->get_parts($word);
 
-        $foundWords = array();
+        $foundWords = [];
 
-        foreach ($parts as $part)
-        {
+        foreach ($parts as $part) {
             $size = mb_strlen($part);
             $skey = $size;
-            if (!isset($this->wordParts[$skey][$part]))
+            if (!isset($this->wordParts[$skey][$part])) {
                 continue;
+            }
             $words = $this->wordParts[$skey][$part]['words'];
-            foreach ($words as $word)
-            {
-                if (!isset($foundWords[$word]))
-                {
-                    $foundWords[$word] = 0;
+            foreach ($words as $tmpWord) {
+                if (!isset($foundWords[$tmpWord])) {
+                    $foundWords[$tmpWord] = 0;
                 }
-                $foundWords[$word] += 1;
+                ++$foundWords[$tmpWord];
             }
         }
 
-        $resWords = array();
+        $resWords = [];
 
-        foreach ($foundWords as $word => $num)
-        {
-            $numparts = $this->wordInfo[$word]['num_parts'] > count($parts) ? $this->wordInfo[$word]['num_parts'] : count($parts);
-            $foundWords[$word] = $num / $numparts;
+        $countParts = count($parts);
+        foreach ($foundWords as $tmpWord => $num) {
+            $numparts = $this->wordInfo[$tmpWord]['num_parts'] > $countParts
+                ? $this->wordInfo[$tmpWord]['num_parts'] : $countParts;
+            $foundWords[$tmpWord] = $numparts > 0 ? $num / $numparts : 0;
         }
 
-        uasort($foundWords, function($wc1, $wc2)
-        {
-            if ($wc1 > $wc2)
-                return -1;
-            if ($wc1 < $wc2)
-                return 1;
-            return 0;
+        uasort($foundWords, static function($wc1, $wc2) {
+            return $wc2 <=> $wc1;
         });
 
         $num = 0;
-        foreach ($foundWords as $word => $percent)
-        {
-            $num += 1;
-            $resWords[] = array("word" => $this->words[$word], "percent" => $percent);
-            if ($num >= $results)
+        foreach ($foundWords as $tmpWord => $percent) {
+            ++$num;
+            $resWords[] = ['word' => $this->words[$tmpWord], 'percent' => $percent];
+            if ($num >= $results) {
                 break;
+            }
         }
 
         return $resWords;
     }
 
     /**
-     * Функция поиска с помощью расстояний левенштейна,
-     * добавлена исключительно для тестирования быстродействия.
+     * Функция поиска с помощью расстояний левенштейна, добавлена исключительно для тестирования быстродействия.
      * Работает СИЛЬНО медленнее функции find
+     *
+     * @return array<mixed>
      */
-    public function findByLevestaine($word, $results = 1)
+    public function findByLevestaine(string $word, ?int $results = 1): array
     {
         $word = $this->prepare_word($word);
 
-        $data = array();
+        $data = [];
         $maxDistance = 0;
 
-        foreach ($this->wordInfo as $wordInfo)
-        {
+        foreach ($this->wordInfo as $wordInfo) {
             $curWord = $wordInfo['word'];
             $distance = levenshtein($word, $curWord);
-            $data[] = array("word" => $curWord, "percent" => $distance);
-            $maxDistance = max(array($distance, $maxDistance));
+            $data[] = ['word' => $curWord, 'percent' => $distance];
+            $maxDistance = max([$distance, $maxDistance]);
         }
 
-        foreach ($data as $key => $value)
-        {
-            $data[$key]['percent'] = 1 - $data[$key]['percent'] / $maxDistance;
+        foreach ($data as $key => $value) {
+            $data[$key]['percent'] = 0 === $maxDistance ? 0 : 1 - $value['percent'] / $maxDistance;
         }
 
-        uasort($data, function($v1, $v2)
-        {
-            if ($v1['percent'] > $v2['percent'])
-                return -1;
-            if ($v1['percent'] < $v2['percent'])
-                return 1;
-            return 0;
+        uasort($data, static function($v1, $v2) {
+            return $v2['percent'] <=> $v1['percent'];
         });
 
         return array_slice($data, 0, $results);
     }
 
     /**
-     * Функция поиска с помощью функции similar_text,
-     * добавлена исключительно для тестирования быстродействия.
+     * Функция поиска с помощью функции similar_text, добавлена исключительно для тестирования быстродействия.
      * Работает СИЛЬНО медленнее функции find
+     *
+     * @return array<mixed>
      */
-    public function findBySimilarText($word, $results = 1)
+    public function findBySimilarText(string $word, ?int $results = 1): array
     {
         $word = $this->prepare_word($word);
 
-        $data = array();
-        $maxDistance = 0;
+        $data = [];
 
-        foreach ($this->wordInfo as $wordInfo)
-        {
+        foreach ($this->wordInfo as $wordInfo) {
             $curWord = $wordInfo['word'];
             $distance = similar_text($word, $curWord);
-            $data[] = array("word" => $curWord, "percent" => $distance);
+            $data[] = ['word' => $curWord, 'percent' => $distance];
         }
 
-
-        uasort($data, function($v1, $v2)
-        {
-            if ($v1['percent'] > $v2['percent'])
-                return -1;
-            if ($v1['percent'] < $v2['percent'])
-                return 1;
-            return 0;
+        uasort($data, static function($v1, $v2) {
+            return $v2['percent'] <=> $v1['percent'];
         });
 
         return array_slice($data, 0, $results);
     }
-
 }

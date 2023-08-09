@@ -1,3 +1,5 @@
+Это клон проекта "mihanentalpo/fast-fuzzy-search" с доработками и оптимизациями для PHP 8.
+
 FastFuzzySearch aimed to search an array of words for the most similiar to the specified one
 
 The used algorythm is much faster than using levenstein distance, or similiar_text functions.
@@ -6,10 +8,10 @@ The used algorythm is much faster than using levenstein distance, or similiar_te
 
 ```php
 
-require_once("./FastFuzzySearch.php");
+require_once('./FastFuzzySearch.php');
 
 //Get words array: (it's english names, starting from A,B,C)
-$words = array(
+$words = [
     'Abbott', 'Abe', 'Addison', 'Adrian', 'Aiken', 'Ainsley', 'Al', 'Alan', 
     'Alaric', 'Alban', 'Albert', 'Albion', 'Aldrich', 'Alec', 'Alex', 'Alexander', 
     'Alexis', 'Alf', 'Alfie', 'Alfred', 'Alger', 'Algernon', 'Alick', 'Allan', 
@@ -26,7 +28,7 @@ $words = array(
     'Chuck', 'Clarence', 'Claude', 'Clay', 'Clayton', 'Clement', 'Cliff', 'Clifford', 
     'Clifton', 'Clive', 'Clyde', 'Cole', 'Coleman', 'Colin', 'Conrad', 'Constant', 
     'Conway', 'Corwin', 'Courtney', 'Craig', 'Crispin', 'Crosby', 'Curtis', 'Cuthbert', 'Cyril'
-);
+];
 
 
 //Create FastFuzzySearch object:

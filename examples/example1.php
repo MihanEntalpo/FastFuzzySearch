@@ -1,8 +1,11 @@
 <?php
-require_once("../FastFuzzySearch.php");
+
+declare(strict_types=1);
+
+require_once('../FastFuzzySearch.php');
 
 //Get words array: (it's english names, starting from A,B,C)
-$words = array(
+$words = [
     'Abbott', 'Abe', 'Addison', 'Adrian', 'Aiken', 'Ainsley', 'Al', 'Alan', 
     'Alaric', 'Alban', 'Albert', 'Albion', 'Aldrich', 'Alec', 'Alex', 'Alexander', 
     'Alexis', 'Alf', 'Alfie', 'Alfred', 'Alger', 'Algernon', 'Alick', 'Allan', 
@@ -19,17 +22,16 @@ $words = array(
     'Chuck', 'Clarence', 'Claude', 'Clay', 'Clayton', 'Clement', 'Cliff', 'Clifford', 
     'Clifton', 'Clive', 'Clyde', 'Cole', 'Coleman', 'Colin', 'Conrad', 'Constant', 
     'Conway', 'Corwin', 'Courtney', 'Craig', 'Crispin', 'Crosby', 'Curtis', 'Cuthbert', 'Cyril'
-);
+];
 
 //Create FastFuzzySearch object:
 $ffs = new FastFuzzySearch($words);
 
 //Lets pretend, this is user's input:
-$input = "charter";
+$input = 'charter';
 
 //Lets get three most similiar english names:
 $results = $ffs->find($input, 3);
 
 //End output it:
 print_r($results);
-

@@ -1,5 +1,5 @@
 {
-    "name": "ekhlakov/fast-fuzzy-search",
+    "name": "mihanentalpo/fast-fuzzy-search",
     "type": "library",
     "description": "This is clone of mihanentalpo/fast-fuzzy-search with updates for PHP 8. Fast fuzzy search in an array of strings for the most similiar ones",
     "keywords": ["search", "compare", "fuzzy"],

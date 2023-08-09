@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace Ekhlakov\FastFuzzySearch;
+namespace Mihanentalpo\FastFuzzySearch;
 
 class FastFuzzySearch
 {

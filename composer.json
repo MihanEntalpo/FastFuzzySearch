@@ -1,7 +1,7 @@
 {
     "name": "mihanentalpo/fast-fuzzy-search",
     "type": "library",
-    "description": "Fast fuzzy search in an array of strings for the most similiar ones",
+    "description": "This is clone of mihanentalpo/fast-fuzzy-search with updates for PHP 8. Fast fuzzy search in an array of strings for the most similiar ones",
     "keywords": ["search", "compare", "fuzzy"],
     "authors": [
         {
@@ -13,7 +13,9 @@
     ],
     "license": "MIT",
     "require": {
-        "php": "^5.3.5 || ^7.0"
+        "php": ">=8",
+        "ext-json": "*",
+        "ext-mbstring": "*"
     },
     "autoload": {
         "psr-4":{
